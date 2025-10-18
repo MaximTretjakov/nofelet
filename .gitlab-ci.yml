@@ -1,0 +1,34 @@
+variables:
+  STAGE_BASE_IMAGE: "golang:1.23.4-alpine3.21"
+  PRODUCTION_BASE_IMAGE: "golang:1.23.4-alpine3.21"
+  LINTER_BASE_IMAGE: "golang:1.23.4-alpine3.21"
+  GOLANGCI_LINT_VERSION: "v1.61.0"
+  OAPI_CODEGEN_VERSION: "v1.11.0"
+  OAPI_MERGER_VERSION: "v0.0.2"
+
+stages:
+  - lint
+  - build
+  - dev
+  - tests
+  - stage
+  - production
+  - cleanup
+
+include:
+  - project: 'infra/common-ci'
+    file: '/golang/linter.yml'
+  - project: 'infra/common-ci'
+    file: '/golang/docsbuildAndTests.yml'
+  - project: 'infra/common-ci'
+    file: '/golang/stageFeatureBranchesApiProxyRefVault.yml'
+  - project: 'infra/common-ci'
+    file: '/golang/stageMasterBranchApiProxyRefVault.yml'
+  - project: 'infra/common-ci'
+    file: '/golang/productionMasterBranchApiProxyRefVault.yml'
+  - project: 'infra/common-ci'
+    file: '/tests/sonar.yml'
+  - project: 'infra/common-ci'
+    file: '/tests/autoTestsFeature.yml'
+  - project: 'infra/common-ci'
+    file: '/tests/autoTestsMaster.yml'

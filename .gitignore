@@ -1,0 +1,48 @@
+
+# Created by https://www.toptal.com/developers/gitignore/api/go
+# Edit at https://www.toptal.com/developers/gitignore?templates=go
+
+### Go ###
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+### Go Patch ###
+/vendor/
+/Godeps/
+
+# End of https://www.toptal.com/developers/gitignore/api/go
+
+api-proxy
+
+.private.env
+.idea
+tmp/
+
+.werf_secret_key
+
+main
+spec.gen.go
+/.air.toml
+
+environment/stage/mobile-secrets.yaml
+environment/stage/web-secrets.yaml
+environment/production/mobile-secrets-production.yaml
+environment/production/web-secrets-production.yaml
+environment/production/mobile-secrets-preproduction.yaml
+environment/production/web-secrets-preproduction.yaml
+
+docs/swagger.yaml
+**/.DS_Store
