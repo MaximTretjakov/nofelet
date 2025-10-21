@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
-	HTTP HTTPConfig `env:",prefix=HTTP_"`
+	WS WSConfig `env:",prefix=WS_"`
 }
 
-type HTTPConfig struct {
+type WSConfig struct {
 	Port              string        `env:"PORT,required"`
 	ReadTimeout       time.Duration `env:"READ_TIMEOUT,default=5s"`
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT,default=15s"`

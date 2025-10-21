@@ -35,21 +35,21 @@ func main() {
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	httpServer := httpserver.New(deps.Signaling.Routes,
-		httpserver.WithAddress(":"+cfg.HTTP.Port),
-		httpserver.WithReadTimeout(cfg.HTTP.ReadTimeout),
-		httpserver.WithReadHeaderTimeout(cfg.HTTP.ReadHeaderTimeout),
-		httpserver.WithWriteTimeout(cfg.HTTP.WriteTimeout),
-		httpserver.WithShutdownTimeout(cfg.HTTP.ShutdownTimeout),
+		httpserver.WithAddress(cfg.WS.Port),
+		httpserver.WithReadTimeout(cfg.WS.ReadTimeout),
+		httpserver.WithReadHeaderTimeout(cfg.WS.ReadHeaderTimeout),
+		httpserver.WithWriteTimeout(cfg.WS.WriteTimeout),
+		httpserver.WithShutdownTimeout(cfg.WS.ShutdownTimeout),
 	)
 
 	select {
 	case s := <-interrupt:
-		logger.Error("signal: " + s.String())
+		logger.Error("signal", s.String())
 	case err := <-httpServer.Notify():
-		logger.Error("httpServer.Notify: %s", err)
+		logger.Error("httpServer.Notify", err)
 	}
 
 	if err := httpServer.Shutdown(); err != nil {
-		logger.Error("httpServer.Shutdown: %s", err)
+		logger.Error("httpServer.Shutdown", err)
 	}
 }
