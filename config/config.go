@@ -14,8 +14,8 @@ type Config struct {
 
 type WSConfig struct {
 	Port              string        `env:"PORT,required"`
-	ReadTimeout       time.Duration `env:"READ_TIMEOUT,default=5s"`
-	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT,default=15s"`
+	ReadTimeout       time.Duration `env:"READ_TIMEOUT,default=30s"`
+	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT,default=30s"`
 	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT,default=500ms"`
 	ShutdownTimeout   time.Duration `env:"SHUTDOWN_TIMEOUT,default=3s"`
 }
