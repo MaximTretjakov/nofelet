@@ -6,8 +6,8 @@ import (
 )
 
 func Register(deps *dependency.Container) {
-	controller := sdpController.New()
+	controller := sdpController.New(deps.Logger)
 
 	sdp := deps.Signaling.Routes
-	sdp.GET("/connect/:roomId", controller.GetConnection)
+	sdp.GET("/connect", controller.GetConnection)
 }

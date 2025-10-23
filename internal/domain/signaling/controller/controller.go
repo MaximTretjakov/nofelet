@@ -1,7 +1,15 @@
 package controller
 
-type Controller struct{}
+import (
+	"log/slog"
+)
 
-func New() *Controller {
-	return &Controller{}
+type Controller struct {
+	Logger *slog.Logger
+}
+
+func New(logger *slog.Logger) *Controller {
+	return &Controller{
+		Logger: logger,
+	}
 }
