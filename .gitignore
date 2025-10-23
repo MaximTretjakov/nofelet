@@ -37,12 +37,5 @@ main
 spec.gen.go
 /.air.toml
 
-environment/stage/mobile-secrets.yaml
-environment/stage/web-secrets.yaml
-environment/production/mobile-secrets-production.yaml
-environment/production/web-secrets-production.yaml
-environment/production/mobile-secrets-preproduction.yaml
-environment/production/web-secrets-preproduction.yaml
-
 docs/swagger.yaml
 **/.DS_Store
