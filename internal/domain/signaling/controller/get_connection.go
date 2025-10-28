@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,12 +10,13 @@ import (
 	"nofelet/pkg/singleton"
 )
 
-// GetConnection /connect установка sdp сессии
+// GetConnection /connect/:uuid установка sdp сессии
 func (c *Controller) GetConnection(ctx *gin.Context) {
 	cm := singleton.NewConnectionManager()
+
 	u := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // Разрешаем все origin (НЕ для продакшена!)
+			return true
 		},
 	}
 
@@ -26,10 +26,11 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 	}
 
 	cm.Mu.Lock()
+	if len(cm.Clients) >= 2 {
+		conn.Close()
+	}
 	cm.Clients[conn] = true
 	cm.Mu.Unlock()
-
-	fmt.Printf("New client connected. Total: %d\n", len(cm.Clients))
 
 	go handleClient(conn, cm)
 }
@@ -40,7 +41,6 @@ func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager) {
 		delete(cm.Clients, conn)
 		cm.Mu.Unlock()
 		conn.Close()
-		fmt.Printf("Client disconnected. Total: %d\n", len(cm.Clients))
 	}()
 
 	var message view.Message
@@ -49,10 +49,6 @@ func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager) {
 		if err != nil {
 			break
 		}
-
-		fmt.Printf("Client: %s Received message: %s\n", conn.RemoteAddr().String(), message.Type)
-
-		// Пересылаем сообщение всем другим клиентам
 		broadcast(message, conn, cm)
 	}
 }
@@ -68,7 +64,6 @@ func broadcast(message view.Message, sender *websocket.Conn, cm *singleton.Conne
 				client.Close()
 				delete(cm.Clients, client)
 			}
-			fmt.Printf("Broadcast message to clients: %s\n", message)
 		}
 	}
 }
