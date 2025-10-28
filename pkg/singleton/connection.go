@@ -23,7 +23,6 @@ func NewConnectionManager() *ConnectionManager {
 		instance = &ConnectionManager{
 			Clients: make(map[*websocket.Conn]bool),
 		}
-		println("Database instance created")
 	})
 	return instance
 }
