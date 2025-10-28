@@ -26,9 +26,6 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 	}
 
 	cm.Mu.Lock()
-	if len(cm.Clients) >= 2 {
-		conn.Close()
-	}
 	cm.Clients[conn] = true
 	cm.Mu.Unlock()
 
