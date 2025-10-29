@@ -13,7 +13,7 @@ var (
 
 // ConnectionManager хранит коннкты клиентов
 type ConnectionManager struct {
-	Clients map[*websocket.Conn]bool
+	Clients map[*websocket.Conn]string
 	Mu      sync.RWMutex
 }
 
@@ -21,7 +21,7 @@ type ConnectionManager struct {
 func NewConnectionManager() *ConnectionManager {
 	once.Do(func() {
 		instance = &ConnectionManager{
-			Clients: make(map[*websocket.Conn]bool),
+			Clients: make(map[*websocket.Conn]string),
 		}
 	})
 	return instance

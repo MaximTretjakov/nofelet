@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,16 +19,21 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
+		ReadBufferSize:  8192, // Увеличиваем буфер чтения
+		WriteBufferSize: 8192, // Увеличиваем буфер записи
 	}
 
 	conn, err := u.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		return
 	}
+	conn.SetReadLimit(8192)
+	fmt.Printf("GetConnection: client accepted %s\n", conn.RemoteAddr().String())
 
 	cm.Mu.Lock()
-	cm.Clients[conn] = true
+	cm.Clients[conn] = ctx.Param("uuid")
 	cm.Mu.Unlock()
+	fmt.Printf("GetConnection: connection manager len=%d data=%v\n", len(cm.Clients), cm.Clients)
 
 	go handleClient(conn, cm)
 }
@@ -54,12 +60,14 @@ func broadcast(message view.Message, sender *websocket.Conn, cm *singleton.Conne
 	cm.Mu.RLock()
 	defer cm.Mu.RUnlock()
 
-	for client := range cm.Clients {
-		if client != sender {
-			err := client.WriteJSON(message)
-			if err != nil {
-				client.Close()
-				delete(cm.Clients, client)
+	for client, id := range cm.Clients {
+		if id == cm.Clients[sender] {
+			if client != sender {
+				err := client.WriteJSON(message)
+				if err != nil {
+					client.Close()
+					delete(cm.Clients, client)
+				}
 			}
 		}
 	}
