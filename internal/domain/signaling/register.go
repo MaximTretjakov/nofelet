@@ -9,5 +9,5 @@ func Register(deps *dependency.Container) {
 	controller := sdpController.New(deps.Logger)
 
 	sdp := deps.Signaling.Routes
-	sdp.GET("/connect", controller.GetConnection)
+	sdp.GET("/connect/:uuid", controller.GetConnection)
 }
