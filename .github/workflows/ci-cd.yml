@@ -86,5 +86,5 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             mkdir -p ${{ env.APP_PATH }}/{bin,logs,config}
-            cp bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+            cp /home/runner/work/nofelet/nofelet/bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
             chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
