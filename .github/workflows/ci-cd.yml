@@ -7,7 +7,6 @@ on:
     branches: [ main, master ]
 
 env:
-  APP_NAME: ${{ vars.APP_NAME }}
   APP_PATH: ${{ vars.APP_PATH }}
   BINARY_NAME: ${{ vars.BINARY_NAME }}
 
@@ -77,10 +76,8 @@ jobs:
           name: ${{ env.BINARY_NAME }}-binary
           path: .
 
-      - name: Fix binary permissions
-        run: |
-          chmod +x bin/${{ env.BINARY_NAME }}
-          ls -la bin/${{ env.BINARY_NAME }}  # Проверим права
+      - name: Fix permissions
+        run: chmod +x ${{ env.BINARY_NAME }}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -90,6 +87,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            mkdir -p ${{ env.APP_PATH }}/{bin,logs,config}
+            mkdir -p ${{ env.APP_PATH }}/bin
             cp ${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
             ls -la ${{ env.APP_PATH }}/bin/
