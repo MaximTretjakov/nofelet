@@ -1,0 +1,112 @@
+name: Nofelet-backend pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  APP_NAME: "nofelet-backend"
+  BINARY_NAME: "signaling"
+
+jobs:
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Run tests
+        run: |
+          go test ./... -v
+        continue-on-error: true  # Пока тесты не обязательны
+
+  build:
+    name: Build Project
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Build Linux binary
+        run: |
+          mkdir -p bin
+          GOOS=linux GOARCH=amd64 go build --ldflags="-s -w" -v -o bin/$BINARY_NAME cmd/signaling/main.go
+
+      - name: Show binary info
+        run: |
+          ls -la bin/
+          file bin/$BINARY_NAME
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-binary
+          path: bin/
+          retention-days: 7
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}-binary
+          path: bin/
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            # Создаем директории приложения
+            sudo mkdir -p /opt/$APP_NAME/{bin,logs,config}
+            
+            # Останавливаем текущий сервис
+            sudo systemctl stop $APP_NAME || true
+            
+            # Копируем бинарник
+            sudo cp bin/$BINARY_NAME /opt/$APP_NAME/bin/
+            sudo chmod +x /opt/$APP_NAME/bin/$BINARY_NAME
+            
+            # Копируем конфигурацию (если есть)
+            if [ -f config/production.yaml ]; then
+              sudo cp config/production.yaml /opt/$APP_NAME/config/
+            fi
+            
+            # Настраиваем владельца
+            sudo chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} /opt/$APP_NAME
+            
+            # Перезапускаем сервис
+            sudo systemctl daemon-reload
+            sudo systemctl enable $APP_NAME
+            sudo systemctl start $APP_NAME
+            
+            # Проверяем статус
+            sleep 5
+            sudo systemctl status $APP_NAME
