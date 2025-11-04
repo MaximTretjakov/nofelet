@@ -77,6 +77,14 @@ jobs:
           name: ${{ env.BINARY_NAME }}-binary
           path: bin/
 
+      - name: Debug - посмотреть что скачалось
+        run: |
+          echo "Текущая директория: $(pwd)"
+          echo "Содержимое bin/:"
+          ls -la bin/
+          echo "Полный путь к бинарнику:"
+          find . -name "${{ vars.BINARY_NAME }}" -type f
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -86,5 +94,5 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             mkdir -p ${{ env.APP_PATH }}/{bin,logs,config}
-            cp /home/runner/work/nofelet/nofelet/bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+            cp bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
             chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
