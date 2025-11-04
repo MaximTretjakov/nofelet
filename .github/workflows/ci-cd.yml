@@ -85,6 +85,11 @@ jobs:
           echo "Полный путь к бинарнику:"
           find . -name "${{ vars.BINARY_NAME }}" -type f
 
+      - name: Fix binary permissions
+        run: |
+          chmod +x bin/${{ vars.BINARY_NAME }}
+          ls -la bin/${{ vars.BINARY_NAME }}  # Проверим права
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
