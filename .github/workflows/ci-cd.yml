@@ -61,23 +61,55 @@ jobs:
           retention-days: 2
 
   deploy:
-    name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug BEFORE download
+        run: |
+          echo "=== ДО загрузки артефакта ==="
+          echo "Текущая папка: $(pwd)"
+          echo "Содержимое:"
+          ls -la
+          echo "Файл nofelet существует? $(ls nofelet 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.BINARY_NAME }}-binary
+          name: ${{ vars.BINARY_NAME }}-binary
           path: .
 
+      - name: Debug AFTER download
+        run: |
+          echo "=== ПОСЛЕ загрузки артефакта ==="
+          echo "Текущая папка: $(pwd)"
+          echo "Содержимое:"
+          ls -la
+          echo "Размер файлов:"
+          du -sh *
+          echo "Тип файлов:"
+          file * 2>/dev/null || true
+          echo "Файл nofelet существует? $(ls nofelet 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
+          echo "Папка bin существует? $(ls bin/ 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
+          if [ -d bin/ ]; then
+            echo "Содержимое bin/:"
+            ls -la bin/
+          fi
+
       - name: Fix permissions
-        run: chmod +x ${{ env.BINARY_NAME }}
+        run: |
+          if [ -f nofelet ]; then
+            echo "✅ Файл nofelet найден в корне"
+            chmod +x nofelet
+          elif [ -f bin/nofelet ]; then
+            echo "✅ Файл nofelet найден в bin/"
+            chmod +x bin/nofelet
+          else
+            echo "❌ Файл nofelet не найден!"
+            find . -name "nofelet" -type f
+          fi
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -85,9 +117,52 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
           script: |
-            mkdir -p ${{ env.APP_PATH }}/bin
-            cp ${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
-            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
-            ls -la ${{ env.APP_PATH }}/bin/
+            echo "=== На сервере ДО копирования ==="
+            ls -la ${{ vars.APP_PATH }}/bin/ 2>/dev/null || echo "Папка не существует"
+
+            echo "Копируем файл..."
+            if [ -f nofelet ]; then
+              cp nofelet ${{ vars.APP_PATH }}/bin/
+            elif [ -f bin/nofelet ]; then
+              cp bin/nofelet ${{ vars.APP_PATH }}/bin/
+            else
+              echo "❌ Файл для копирования не найден!"
+              exit 1
+            fi
+
+            echo "=== На сервере ПОСЛЕ копирования ==="
+            ls -la ${{ vars.APP_PATH }}/bin/        
+
+
+#  deploy:
+#    name: Deploy to VPS
+#    runs-on: ubuntu-latest
+#    needs: build
+#    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Download build artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: ${{ env.BINARY_NAME }}-binary
+#          path: .
+#
+#      - name: Fix permissions
+#        run: chmod +x ${{ env.BINARY_NAME }}
+#
+#      - name: Deploy to VPS
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.VPS_HOST }}
+#          username: ${{ secrets.VPS_USERNAME }}
+#          key: ${{ secrets.VPS_SSH_KEY }}
+#          port: ${{ secrets.VPS_PORT }}
+#          script: |
+#            mkdir -p ${{ env.APP_PATH }}/bin
+#            cp ${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+#            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
+#            ls -la ${{ env.APP_PATH }}/bin/
