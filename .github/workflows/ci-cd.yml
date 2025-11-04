@@ -86,27 +86,3 @@ jobs:
           script: |
             # Создаем директории приложения
             sudo mkdir -p /opt/$APP_NAME/{bin,logs,config}
-            
-#            # Останавливаем текущий сервис
-#            sudo systemctl stop $APP_NAME || true
-            
-            # Копируем бинарник
-            sudo cp bin/$BINARY_NAME /opt/$APP_NAME/bin/
-            sudo chmod +x /opt/$APP_NAME/bin/$BINARY_NAME
-            
-#            # Копируем конфигурацию (если есть)
-#            if [ -f config/production.yaml ]; then
-#              sudo cp config/production.yaml /opt/$APP_NAME/config/
-#            fi
-            
-#            # Настраиваем владельца
-#            sudo chown -R ${{ secrets.VPS_USERNAME }}:${{ secrets.VPS_USERNAME }} /opt/$APP_NAME
-            
-#            # Перезапускаем сервис
-#            sudo systemctl daemon-reload
-#            sudo systemctl enable $APP_NAME
-#            sudo systemctl start $APP_NAME
-#
-#            # Проверяем статус
-#            sleep 5
-#            sudo systemctl status $APP_NAME
