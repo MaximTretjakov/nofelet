@@ -7,8 +7,9 @@ on:
     branches: [ main, master ]
 
 env:
-  APP_NAME: "nofelet-backend"
-  BINARY_NAME: "signaling"
+  APP_NAME: ${{ vars.APP_NAME }}
+  APP_PATH: ${{ vars.APP_PATH }}
+  BINARY_NAME: ${{ vars.BINARY_NAME }}
 
 jobs:
   tests:
@@ -58,7 +59,7 @@ jobs:
         with:
           name: ${{ env.BINARY_NAME }}-binary
           path: bin/
-          retention-days: 7
+          retention-days: 2
 
   deploy:
     name: Deploy to VPS
@@ -84,5 +85,6 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            # Создаем директории приложения
-            mkdir -p /opt/$APP_NAME/{bin,logs,config}
+            mkdir -p ${{ env.APP_PATH }}/{bin,logs,config}
+            cp bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
