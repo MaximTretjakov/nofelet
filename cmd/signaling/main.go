@@ -22,13 +22,13 @@ func main() {
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	deps, err := dependency.New(&cfg, logger)
-	if err != nil {
-		log.Fatal(err)
+	deps, depErr := dependency.New(&cfg, logger)
+	if depErr != nil {
+		log.Fatal(depErr)
 	}
 
-	if err := signaling.New(deps); err != nil {
-		log.Fatal(err)
+	if sigErr := signaling.New(deps); sigErr != nil {
+		log.Fatal(sigErr)
 	}
 
 	interrupt := make(chan os.Signal, 1)
@@ -44,7 +44,7 @@ func main() {
 
 	select {
 	case s := <-interrupt:
-		logger.Error("signal", s.String())
+		logger.Error("error", slog.String("signal", s.String()))
 	case err := <-httpServer.Notify():
 		logger.Error("httpServer.Notify", err)
 	}
