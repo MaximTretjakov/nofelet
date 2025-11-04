@@ -85,4 +85,4 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             # Создаем директории приложения
-            sudo mkdir -p /opt/$APP_NAME/{bin,logs,config}
+            mkdir -p /opt/$APP_NAME/{bin,logs,config}
