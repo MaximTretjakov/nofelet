@@ -75,7 +75,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ env.BINARY_NAME }}-binary
-          path: bin/
+          path: .
 
       - name: Debug - посмотреть что скачалось
         run: |
@@ -83,12 +83,12 @@ jobs:
           echo "Содержимое bin/:"
           ls -la bin/
           echo "Полный путь к бинарнику:"
-          find . -name "${{ vars.BINARY_NAME }}" -type f
+          find . -name "${{ env.BINARY_NAME }}" -type f
 
       - name: Fix binary permissions
         run: |
-          chmod +x bin/${{ vars.BINARY_NAME }}
-          ls -la bin/${{ vars.BINARY_NAME }}  # Проверим права
+          chmod +x bin/${{ env.BINARY_NAME }}
+          ls -la bin/${{ env.BINARY_NAME }}  # Проверим права
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
@@ -99,5 +99,5 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             mkdir -p ${{ env.APP_PATH }}/{bin,logs,config}
-            cp bin/${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
-            ls -la ${{ vars.APP_PATH }}/bin/
+            cp ${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
+            ls -la ${{ env.APP_PATH }}/bin/

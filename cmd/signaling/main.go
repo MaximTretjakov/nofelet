@@ -46,10 +46,10 @@ func main() {
 	case s := <-interrupt:
 		logger.Error("error", slog.String("signal", s.String()))
 	case err := <-httpServer.Notify():
-		logger.Error("httpServer.Notify", err)
+		logger.Error("httpServer.Notify", slog.AnyValue(err))
 	}
 
 	if err := httpServer.Shutdown(); err != nil {
-		logger.Error("httpServer.Shutdown", err)
+		logger.Error("httpServer.Shutdown", slog.AnyValue(err))
 	}
 }
