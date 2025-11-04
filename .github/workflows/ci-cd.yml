@@ -5,6 +5,16 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 env:
   APP_PATH: ${{ vars.APP_PATH }}
@@ -27,7 +37,7 @@ jobs:
       - name: Run tests
         run: |
           go test ./... -v
-        continue-on-error: true  # Пока тесты не обязательны
+        continue-on-error: true
 
   build:
     name: Build Project
@@ -47,122 +57,72 @@ jobs:
         run: |
           mkdir -p bin
           GOOS=linux GOARCH=amd64 go build --ldflags="-s -w" -v -o bin/${{ env.BINARY_NAME }} cmd/signaling/main.go
+          chmod +x bin/${{ env.BINARY_NAME }}
 
       - name: Show binary info
         run: |
           ls -la bin/
           file bin/${{ env.BINARY_NAME }}
 
-      - name: Upload build artifacts
+      - name: Upload binary file
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BINARY_NAME }}-binary
-          path: bin/
+          path: bin/${{ env.BINARY_NAME }}
           retention-days: 2
 
   deploy:
+    name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug BEFORE download
-        run: |
-          echo "=== ДО загрузки артефакта ==="
-          echo "Текущая папка: $(pwd)"
-          echo "Содержимое:"
-          ls -la
-          echo "Файл nofelet существует? $(ls nofelet 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
-
-      - name: Download build artifacts
+      - name: Download binary
         uses: actions/download-artifact@v4
         with:
-          name: ${{ vars.BINARY_NAME }}-binary
+          name: ${{ env.BINARY_NAME }}-binary
           path: .
 
-      - name: Debug AFTER download
+      - name: Verify downloaded binary
         run: |
-          echo "=== ПОСЛЕ загрузки артефакта ==="
-          echo "Текущая папка: $(pwd)"
-          echo "Содержимое:"
-          ls -la
-          echo "Размер файлов:"
-          du -sh *
-          echo "Тип файлов:"
-          file * 2>/dev/null || true
-          echo "Файл nofelet существует? $(ls nofelet 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
-          echo "Папка bin существует? $(ls bin/ 2>/dev/null && echo 'ДА' || echo 'НЕТ')"
-          if [ -d bin/ ]; then
-            echo "Содержимое bin/:"
-            ls -la bin/
-          fi
+          echo "✅ Файл скачан:"
+          ls -la ${{ env.BINARY_NAME }}
+          chmod +x ${{ env.BINARY_NAME }}
 
-      - name: Fix permissions
-        run: |
-          if [ -f nofelet ]; then
-            echo "✅ Файл nofelet найден в корне"
-            chmod +x nofelet
-          elif [ -f bin/nofelet ]; then
-            echo "✅ Файл nofelet найден в bin/"
-            chmod +x bin/nofelet
-          else
-            echo "❌ Файл nofelet не найден!"
-            find . -name "nofelet" -type f
-          fi
-
-      - name: Deploy to VPS
+      - name: Create directories on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
           script: |
-            echo "=== На сервере ДО копирования ==="
-            ls -la ${{ vars.APP_PATH }}/bin/ 2>/dev/null || echo "Папка не существует"
+            mkdir -p ${{ env.APP_PATH }}/bin
+            echo "📁 Директории созданы в ${{ env.APP_PATH }}/bin"
 
-            echo "Копируем файл..."
-            if [ -f nofelet ]; then
-              cp nofelet ${{ vars.APP_PATH }}/bin/
-            elif [ -f bin/nofelet ]; then
-              cp bin/nofelet ${{ vars.APP_PATH }}/bin/
-            else
-              echo "❌ Файл для копирования не найден!"
-              exit 1
-            fi
+      - name: Copy binary to VPS
+        uses: appleboy/scp-action@v0.1.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: ${{ env.BINARY_NAME }}
+          target: ${{ env.APP_PATH }}/bin/
 
-            echo "=== На сервере ПОСЛЕ копирования ==="
-            ls -la ${{ vars.APP_PATH }}/bin/        
-
-
-#  deploy:
-#    name: Deploy to VPS
-#    runs-on: ubuntu-latest
-#    needs: build
-#    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#
-#      - name: Download build artifacts
-#        uses: actions/download-artifact@v4
-#        with:
-#          name: ${{ env.BINARY_NAME }}-binary
-#          path: .
-#
-#      - name: Fix permissions
-#        run: chmod +x ${{ env.BINARY_NAME }}
-#
-#      - name: Deploy to VPS
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.VPS_HOST }}
-#          username: ${{ secrets.VPS_USERNAME }}
-#          key: ${{ secrets.VPS_SSH_KEY }}
-#          port: ${{ secrets.VPS_PORT }}
-#          script: |
-#            mkdir -p ${{ env.APP_PATH }}/bin
-#            cp ${{ env.BINARY_NAME }} ${{ env.APP_PATH }}/bin/
-#            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
-#            ls -la ${{ env.APP_PATH }}/bin/
+      - name: Set permissions and verify on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
+            echo "✅ Бинарник готов:"
+            ls -la ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
+            echo "🚀 Деплой завершен успешно!"
