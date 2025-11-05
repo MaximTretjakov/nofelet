@@ -18,6 +18,8 @@ type Server struct {
 	server          *http.Server
 	notify          chan error
 	shutdownTimeout time.Duration
+	serverCrt       string
+	serverKey       string
 }
 
 func New(handler http.Handler, options ...Option) *Server {
@@ -44,7 +46,7 @@ func New(handler http.Handler, options ...Option) *Server {
 
 func (s *Server) start() {
 	go func() {
-		s.notify <- s.server.ListenAndServe()
+		s.notify <- s.server.ListenAndServeTLS(s.serverCrt, s.serverKey)
 		close(s.notify)
 	}()
 }

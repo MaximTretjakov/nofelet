@@ -33,3 +33,15 @@ func WithAddress(address string) Option {
 		s.server.Addr = address
 	}
 }
+
+func WithServerCRT(serverCrt string) Option {
+	return func(s *Server) {
+		s.serverCrt = serverCrt
+	}
+}
+
+func WithServerKey(serverKey string) Option {
+	return func(s *Server) {
+		s.serverKey = serverKey
+	}
+}
