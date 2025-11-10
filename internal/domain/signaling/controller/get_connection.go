@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"net/http"
+	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -12,60 +12,35 @@ import (
 
 // GetConnection /connect/:uuid установка sdp сессии
 func (c *Controller) GetConnection(ctx *gin.Context) {
+	conn, sErr := NewWebSocket(ctx, c.Logger)
+	if sErr != nil {
+		c.Logger.Error("socket creation", slog.Any("err", sErr))
+	}
+
 	cm := singleton.NewConnectionManager()
-
-	u := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-		ReadBufferSize:  8192,
-		WriteBufferSize: 8192,
+	cm.Save(conn, ctx.Param("uuid"))
+	if syncErr := cm.SyncClientsAndBroadcast(); syncErr != nil {
+		c.Logger.Error("sync", slog.Any("err", syncErr))
 	}
 
-	conn, err := u.Upgrade(ctx.Writer, ctx.Request, nil)
-	if err != nil {
-		return
-	}
-	conn.SetReadLimit(8192)
-
-	cm.Mu.Lock()
-	cm.Clients[conn] = ctx.Param("uuid")
-	cm.Mu.Unlock()
-
-	go handleClient(conn, cm)
+	go handleClient(conn, cm, c.Logger)
 }
 
-func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager) {
+func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager, logger *slog.Logger) {
 	defer func() {
-		cm.Mu.Lock()
-		delete(cm.Clients, conn)
-		cm.Mu.Unlock()
+		cm.DeleteClient(conn)
 		conn.Close()
 	}()
 
-	var message view.Message
+	var data view.SDPData
 	for {
-		err := conn.ReadJSON(&message)
-		if err != nil {
+		readErr := conn.ReadJSON(&data)
+		if readErr != nil {
+			logger.Error("socket read", slog.Any("err", readErr))
 			break
 		}
-		broadcast(message, conn, cm)
-	}
-}
-
-func broadcast(message view.Message, sender *websocket.Conn, cm *singleton.ConnectionManager) {
-	cm.Mu.RLock()
-	defer cm.Mu.RUnlock()
-
-	for client, id := range cm.Clients {
-		if id == cm.Clients[sender] {
-			if client != sender {
-				err := client.WriteJSON(message)
-				if err != nil {
-					client.Close()
-					delete(cm.Clients, client)
-				}
-			}
+		if brErr := cm.Broadcast(data, conn, logger); brErr != nil {
+			logger.Error("broadcast", slog.Any("err", brErr))
 		}
 	}
 }
