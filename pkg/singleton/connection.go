@@ -46,6 +46,13 @@ func (cm *ConnectionManager) DeleteClient(conn *websocket.Conn) {
 	cm.Mu.Unlock()
 }
 
+// Length возвращает количество клиентов
+func (cm *ConnectionManager) Length() int {
+	cm.Mu.RLock()
+	defer cm.Mu.RUnlock()
+	return len(cm.clients)
+}
+
 // SyncClientsAndBroadcast проверка что все кленты подключены
 func (cm *ConnectionManager) SyncClientsAndBroadcast() error {
 	cm.Mu.RLock()
@@ -53,14 +60,17 @@ func (cm *ConnectionManager) SyncClientsAndBroadcast() error {
 
 	if len(cm.clients) == p2pMaxClients {
 		for caller := range cm.clients {
-			wErr := caller.WriteMessage(websocket.TextMessage, []byte("clientExist"))
-			return wErr
+			wErr := caller.WriteJSON(view.SDPData{Type: "clientExist"})
+			if wErr != nil {
+				return wErr
+			}
 		}
 	}
 
 	return nil
 }
 
+// Broadcast рассылает сообщения все клиентам доя установления SDP сессии
 func (cm *ConnectionManager) Broadcast(data view.SDPData, sender *websocket.Conn, logger *slog.Logger) error {
 	cm.Mu.RLock()
 	defer cm.Mu.RUnlock()
