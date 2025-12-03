@@ -18,7 +18,7 @@ type WSConfig struct {
 	ServerKey         string        `env:"SERVER_KEY,required"`
 	ReadTimeout       time.Duration `env:"READ_TIMEOUT,default=30s"`
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT,default=30s"`
-	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT,default=500ms"`
+	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT,default=30s"`
 	ShutdownTimeout   time.Duration `env:"SHUTDOWN_TIMEOUT,default=3s"`
 }
 
