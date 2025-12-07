@@ -10,7 +10,7 @@ import (
 	"nofelet/pkg/singleton"
 )
 
-const p2pLimit = 1
+const p2pLimitConnections = 1
 
 // GetConnection /connect/:uuid установка sdp сессии
 func (c *Controller) GetConnection(ctx *gin.Context) {
@@ -20,7 +20,7 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 	}
 
 	cm := singleton.NewConnectionManager()
-	if cm.Length() <= p2pLimit {
+	if cm.Connections() <= p2pLimitConnections {
 		cm.Save(conn, ctx.Param("uuid"))
 		if syncErr := cm.SyncClientsAndBroadcast(); syncErr != nil {
 			c.Logger.Error("sync", slog.Any("err", syncErr))
