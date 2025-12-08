@@ -46,8 +46,8 @@ func (cm *ConnectionManager) DeleteClient(conn *websocket.Conn) {
 	cm.Mu.Unlock()
 }
 
-// Length возвращает количество клиентов
-func (cm *ConnectionManager) Length() int {
+// Connections возвращает количество клиентов
+func (cm *ConnectionManager) Connections() int {
 	cm.Mu.RLock()
 	defer cm.Mu.RUnlock()
 	return len(cm.clients)

@@ -9,7 +9,8 @@ import (
 )
 
 type Config struct {
-	WS WSConfig `env:",prefix=WS_"`
+	WS    WSConfig `env:",prefix=WS_"`
+	Debug bool     `env:"DEBUG"`
 }
 
 type WSConfig struct {

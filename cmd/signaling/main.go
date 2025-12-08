@@ -20,7 +20,8 @@ func main() {
 	}
 	cfg := config.Current()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	deps, depErr := dependency.New(&cfg, logger)
 	if depErr != nil {

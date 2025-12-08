@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"nofelet/config"
+	"nofelet/middleware"
 )
 
 type Container struct {
@@ -32,6 +33,9 @@ func newRoutes(logger *slog.Logger) (*gin.Engine, error) {
 	router := gin.New()
 	router.ContextWithFallback = true
 	router.HandleMethodNotAllowed = true
-	router.Use(gin.Recovery())
+	router.Use(
+		gin.Recovery(),
+		middleware.DurationLoggerMiddleware(),
+	)
 	return router, nil
 }
