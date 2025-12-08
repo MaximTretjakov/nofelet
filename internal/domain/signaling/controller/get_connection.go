@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
+	"nofelet/config"
 	"nofelet/internal/domain/signaling/controller/view"
 	"nofelet/pkg/singleton"
 )
@@ -42,8 +44,22 @@ func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager, logger 
 			logger.Error("socket read", slog.Any("err", readErr))
 			break
 		}
+
 		if brErr := cm.Broadcast(data, conn, logger); brErr != nil {
 			logger.Error("broadcast", slog.Any("err", brErr))
 		}
+
+		if config.Current().Debug {
+			printSocketData(data, logger, conn)
+		}
 	}
+}
+
+func printSocketData(data view.SDPData, logger *slog.Logger, conn *websocket.Conn) {
+	fmt.Println()
+	message := fmt.Sprintf("from=%s | data=%+v\n",
+		conn.RemoteAddr().String(),
+		data,
+	)
+	logger.Info("wss", slog.String(":", message))
 }
