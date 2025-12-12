@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"nofelet/config"
 	"nofelet/internal/domain/signaling/controller/view"
 )
 
@@ -23,42 +24,44 @@ func (c *Controller) GetCoTURNCredentials(ctx *gin.Context) {
 	}
 	defer conn.Close()
 
+	credentials := generateCoTurnCredentials(c.Config)
+
+	err := conn.WriteJSON(credentials)
+	if err != nil {
+		c.Logger.Error("generate coturn credentials", slog.Any("error", err))
+	}
+}
+
+func generateCoTurnCredentials(cfg *config.Config) view.TURNConfig {
 	// CoTURN по умолчанию использует интервал в 60 секунд для временной метки.
 	// Имя пользователя = Текущий_Timestamp_в_минутах : Префикс_пользователя
-
 	timestamp := time.Now().Unix()
+
 	// Логин (username) - это временная метка в минутах
 	login := fmt.Sprintf("%d", timestamp/60)
-
-	// Если нужен префикс, можно добавить (необязательно, зависит от вашей настройки CoTURN)
 	login = fmt.Sprintf("%s:%s", login, usernamePrefix)
 
 	// Генерируем временный пароль с помощью HMAC-SHA1 хэша от логина и общего секрета
-	h := hmac.New(sha1.New, []byte(c.Config.CoTURN.SharedSecret))
+	h := hmac.New(sha1.New, []byte(cfg.CoTURN.SharedSecret))
 	h.Write([]byte(login))
-	sha1_hash := h.Sum(nil)
+	sha1Hash := h.Sum(nil)
 
 	// Пароль должен быть закодирован в Base64
-	password := base64.StdEncoding.EncodeToString(sha1_hash)
+	password := base64.StdEncoding.EncodeToString(sha1Hash)
 
 	// Формируем структуру ответа для клиента
-	config := view.TURNConfig{
+	return view.TURNConfig{
 		ICEServers: []view.ICEServer{
 			{
 				// STUN-сервер
-				URLs: fmt.Sprintf("stun:%s:3478", c.Config.CoTURN.TurnServerIP),
+				URLs: fmt.Sprintf("stun:%s:3478", cfg.CoTURN.TurnServerIP),
 			},
 			{
 				// TURN-сервер
-				URLs:       fmt.Sprintf("turn:%s:3478", c.Config.CoTURN.TurnServerIP),
+				URLs:       fmt.Sprintf("turn:%s:3478", cfg.CoTURN.TurnServerIP),
 				Username:   login,
 				Credential: password,
 			},
 		},
-	}
-
-	err := conn.WriteJSON(config)
-	if err != nil {
-		c.Logger.Error("coturn credentials", slog.Any("err", err))
 	}
 }
