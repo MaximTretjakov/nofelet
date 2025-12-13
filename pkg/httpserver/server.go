@@ -46,8 +46,7 @@ func New(handler http.Handler, options ...Option) *Server {
 
 func (s *Server) start() {
 	go func() {
-		// s.notify <- s.server.ListenAndServeTLS(s.serverCrt, s.serverKey)
-		s.notify <- s.server.ListenAndServe()
+		s.notify <- s.server.ListenAndServeTLS(s.serverCrt, s.serverKey)
 		close(s.notify)
 	}()
 }

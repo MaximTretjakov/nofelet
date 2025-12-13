@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	WS    WSConfig `env:",prefix=WS_"`
-	Debug bool     `env:"DEBUG"`
+	WS     WSConfig `env:",prefix=WS_"`
+	CoTURN CoTURN   `env:",prefix=COTURN_"`
+	Debug  bool     `env:"DEBUG"`
 }
 
 type WSConfig struct {
@@ -21,6 +22,11 @@ type WSConfig struct {
 	WriteTimeout      time.Duration `env:"WRITE_TIMEOUT,default=30s"`
 	ReadHeaderTimeout time.Duration `env:"READ_HEADER_TIMEOUT,default=30s"`
 	ShutdownTimeout   time.Duration `env:"SHUTDOWN_TIMEOUT,default=3s"`
+}
+
+type CoTURN struct {
+	SharedSecret string `env:"SHARED_SECRET,required"`
+	TurnServerIP string `env:"TURN_SERVER_IP,required"`
 }
 
 func init() {
