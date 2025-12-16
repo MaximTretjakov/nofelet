@@ -33,12 +33,8 @@ func (c *Controller) GetCoTURNCredentials(ctx *gin.Context) {
 }
 
 func generateCoTurnCredentials(cfg *config.Config) view.TURNConfig {
-	// CoTURN по умолчанию использует интервал в 60 секунд для временной метки.
-	// Имя пользователя = Текущий_Timestamp_в_минутах : Префикс_пользователя
-	timestamp := time.Now().Unix()
-
 	// Логин (username) - это временная метка в минутах
-	login := fmt.Sprintf("%d", timestamp/60)
+	login := fmt.Sprintf("%d", time.Now().Add(24*time.Hour).Unix())
 	login = fmt.Sprintf("%s:%s", login, usernamePrefix)
 
 	// Генерируем временный пароль с помощью HMAC-SHA1 хэша от логина и общего секрета
