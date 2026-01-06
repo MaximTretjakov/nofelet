@@ -3,9 +3,14 @@ package controller
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+)
+
+const (
+	handshakeTimeout = 60 * time.Second
 )
 
 // NewWebSocket создает настроенный сокет
@@ -14,8 +19,9 @@ func NewWebSocket(ctx *gin.Context, logger *slog.Logger) (*websocket.Conn, error
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
-		ReadBufferSize:  8192,
-		WriteBufferSize: 8192,
+		ReadBufferSize:   8192,
+		WriteBufferSize:  8192,
+		HandshakeTimeout: handshakeTimeout,
 	}
 
 	conn, err := u.Upgrade(ctx.Writer, ctx.Request, nil)
