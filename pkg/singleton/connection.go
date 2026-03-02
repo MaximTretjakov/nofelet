@@ -66,10 +66,6 @@ func (cm *ConnectionManager) Broadcast(data view.SDPData, sender *websocket.Conn
 					delete(cm.clients, client)
 					return err
 				}
-			} else {
-				logger.Error("Broadcast func", slog.String("err", "client connection not found"))
-				_ = client.Close()
-				delete(cm.clients, client)
 			}
 		}
 	}

@@ -24,18 +24,13 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 	cm := singleton.NewConnectionManager()
 	cm.Save(conn, ctx.Param("uuid"))
 
-	defer func() {
-		cm.DeleteClient(conn)
-		_ = conn.Close()
-	}()
-
 	go handleClient(conn, cm, c.Logger)
 }
 
 func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager, logger *slog.Logger) {
 	defer func() {
 		cm.DeleteClient(conn)
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	var data view.SDPData
