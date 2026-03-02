@@ -12,10 +12,7 @@ import (
 	"nofelet/pkg/singleton"
 )
 
-const (
-	p2pLimitConnections = 1
-	ice                 = "ice-candidate"
-)
+const ice = "ice-candidate"
 
 // GetConnection /connect/:uuid установка sdp сессии
 func (c *Controller) GetConnection(ctx *gin.Context) {
@@ -25,19 +22,15 @@ func (c *Controller) GetConnection(ctx *gin.Context) {
 	}
 
 	cm := singleton.NewConnectionManager()
-	if cm.Connections() <= p2pLimitConnections {
-		cm.Save(conn, ctx.Param("uuid"))
-		if syncErr := cm.SyncClientsAndBroadcast(); syncErr != nil {
-			c.Logger.Error("sync", slog.Any("err", syncErr))
-		}
-		go handleClient(conn, cm, c.Logger)
-	}
+	cm.Save(conn, ctx.Param("uuid"))
+
+	go handleClient(conn, cm, c.Logger)
 }
 
 func handleClient(conn *websocket.Conn, cm *singleton.ConnectionManager, logger *slog.Logger) {
 	defer func() {
 		cm.DeleteClient(conn)
-		conn.Close()
+		_ = conn.Close()
 	}()
 
 	var data view.SDPData

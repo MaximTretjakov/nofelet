@@ -9,8 +9,6 @@ import (
 	"nofelet/internal/domain/signaling/controller/view"
 )
 
-const p2pMaxClients = 2
-
 var (
 	once     sync.Once
 	instance *ConnectionManager
@@ -53,23 +51,6 @@ func (cm *ConnectionManager) Connections() int {
 	return len(cm.clients)
 }
 
-// SyncClientsAndBroadcast проверка что все кленты подключены
-func (cm *ConnectionManager) SyncClientsAndBroadcast() error {
-	cm.Mu.RLock()
-	defer cm.Mu.RUnlock()
-
-	if len(cm.clients) == p2pMaxClients {
-		for caller := range cm.clients {
-			wErr := caller.WriteJSON(view.SDPData{Type: "clientExist"})
-			if wErr != nil {
-				return wErr
-			}
-		}
-	}
-
-	return nil
-}
-
 // Broadcast рассылает сообщения все клиентам доя установления SDP сессии
 func (cm *ConnectionManager) Broadcast(data view.SDPData, sender *websocket.Conn, logger *slog.Logger) error {
 	cm.Mu.RLock()
@@ -80,8 +61,8 @@ func (cm *ConnectionManager) Broadcast(data view.SDPData, sender *websocket.Conn
 			if client != sender {
 				err := client.WriteJSON(data)
 				if err != nil {
-					logger.Error("broadcast send", slog.Any("err", err))
-					client.Close()
+					logger.Error("Broadcast func", slog.Any("err", err))
+					_ = client.Close()
 					delete(cm.clients, client)
 					return err
 				}
