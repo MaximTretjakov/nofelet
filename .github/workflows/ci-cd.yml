@@ -21,13 +21,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 1. Этот шаг берет "MaximTretjakov/nofelet" и делает из него "maximtretjakov/nofelet"
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-           images: ghcr.io/${{ github.repository }} # Здесь он превратит MaximTretjakov -> maximtretjakov
-           tags: |
-             type=raw,value=latest
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -36,15 +38,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # 2. А здесь мы говорим: "Используй теги, которые подготовил шаг meta"
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          # ВАЖНО: используем вывод шага meta, а не IMAGE_NAME
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     runs-on: ubuntu-latest
