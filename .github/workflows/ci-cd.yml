@@ -3,97 +3,46 @@ name: Nofelet-backend pipeline
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 env:
+  REGISTRY: ghcr.io
+  # Имя образа будет: ghcr.io/твой-логин/имя-репозитория
+  IMAGE_NAME: ${{ github.repository }}
   APP_PATH: ${{ vars.APP_PATH }}
-  BINARY_NAME: ${{ vars.BINARY_NAME }}
 
 jobs:
-  tests:
-    name: Run Tests
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
         with:
-          go-version: '1.23'
-          cache: true
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run tests
-        run: |
-          go test ./... -v
-        continue-on-error: true
-
-  build:
-    name: Build Project
-    runs-on: ubuntu-latest
-    needs: tests
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          go-version: '1.23'
-          cache: true
-
-      - name: Build Linux binary
-        run: |
-          mkdir -p bin
-          GOOS=linux GOARCH=amd64 go build --ldflags="-s -w" -v -o bin/${{ env.BINARY_NAME }} cmd/signaling/main.go
-          chmod +x bin/${{ env.BINARY_NAME }}
-
-      - name: Show binary info
-        run: |
-          ls -la bin/
-          file bin/${{ env.BINARY_NAME }}
-
-      - name: Upload binary file
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.BINARY_NAME }}-binary
-          path: bin/${{ env.BINARY_NAME }}
-          retention-days: 2
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
   deploy:
-    name: Deploy to VPS
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
-
+    needs: build-and-push
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download binary
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.BINARY_NAME }}-binary
-          path: .
-
-      - name: Verify downloaded binary
-        run: |
-          echo "✅ Файл скачан:"
-          ls -la ${{ env.BINARY_NAME }}
-          chmod +x ${{ env.BINARY_NAME }}
-
-      - name: Create directories on VPS
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -101,28 +50,12 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script: |
-            mkdir -p ${{ env.APP_PATH }}/bin
-            echo "📁 Директории созданы в ${{ env.APP_PATH }}/bin"
-
-      - name: Copy binary to VPS
-        uses: appleboy/scp-action@v0.1.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          source: ${{ env.BINARY_NAME }}
-          target: ${{ env.APP_PATH }}/bin/
-
-      - name: Set permissions and verify on VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          port: ${{ secrets.VPS_PORT }}
-          script: |
-            chmod +x ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
-            echo "✅ Бинарник готов:"
-            ls -la ${{ env.APP_PATH }}/bin/${{ env.BINARY_NAME }}
-            echo "🚀 Деплой завершен успешно!"
+            cd ${{ env.APP_PATH }}
+            # Авторизуемся в реестре на VPS
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+            # Тянем обновленный образ
+            docker compose pull
+            # Перезапускаем только сервис app
+            docker compose up -d app
+            # Чистим старые образы
+            docker image prune -f

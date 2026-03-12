@@ -1,9 +1,8 @@
 docker/*
-!docker/*/.air.toml
 .vscode
 .idea
 README.md
-werf.yaml
-werf-*
 docker-compose.yaml
-.air.toml.example
+.git
+bin
+.env
