@@ -31,17 +31,15 @@ services:
 #      - internal_net
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/maximtretjakov/nofelet:latest  # ТОЛЬКО ЭТА СТРОКА
     container_name: signaling_server
     restart: always
-#    depends_on:
-#      - db
-    env_file:
-      - .env
     ports:
-      - "8443:8443" # Внешний порт : Порт внутри контейнера
+        - "8443:8443" # Внешний порт : Порт внутри контейнера
+    env_file:
+        - .env
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     deploy:
       resources:
         limits:
