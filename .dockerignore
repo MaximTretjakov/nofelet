@@ -1,0 +1,8 @@
+docker/*
+.vscode
+.idea
+README.md
+docker-compose.yaml
+.git
+bin
+.env
