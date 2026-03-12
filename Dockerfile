@@ -16,5 +16,7 @@ WORKDIR /root/
 # Копируем бинарь с новым именем
 COPY --from=builder /app/nofelet .
 
+EXPOSE 8443
+
 # Запускаем именно nofelet
 CMD ["./nofelet"]
