@@ -17,7 +17,7 @@ type Container struct {
 }
 
 func New(cfg *config.Config, logger *slog.Logger) (*Container, error) {
-	routes, err := newRoutes(logger)
+	routes, err := newRoutes()
 	if err != nil {
 		return nil, fmt.Errorf("инициализация роутера: %w", err)
 	}
@@ -29,7 +29,7 @@ func New(cfg *config.Config, logger *slog.Logger) (*Container, error) {
 	}, nil
 }
 
-func newRoutes(logger *slog.Logger) (*gin.Engine, error) {
+func newRoutes() (*gin.Engine, error) {
 	router := gin.New()
 	router.ContextWithFallback = true
 	router.HandleMethodNotAllowed = true
